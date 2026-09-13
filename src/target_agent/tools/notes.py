@@ -2,6 +2,12 @@ from langchain_core.tools import tool
 
 from target_agent.config import settings
 from target_agent.memory import db
+from target_agent.verification import check_memory_integrity
+
+
+def _format_note(n: dict) -> str:
+    prefix = "[FLAGGED] " if n["flagged"] else ""
+    return f"{prefix}#{n['id']}: {n['content']}"
 
 
 @tool
@@ -11,7 +17,8 @@ def add_note(content: str) -> str:
     Args:
         content: The text to remember.
     """
-    note_id = db.add_note(settings.memory_db_path, content)
+    flagged = bool(check_memory_integrity(content))
+    note_id = db.add_note(settings.memory_db_path, content, flagged=flagged)
     return f"Saved note #{note_id}."
 
 
@@ -21,7 +28,7 @@ def list_notes() -> str:
     notes = db.list_notes(settings.memory_db_path)
     if not notes:
         return "No notes saved yet."
-    return "\n".join(f"#{n['id']}: {n['content']}" for n in notes)
+    return "\n".join(_format_note(n) for n in notes)
 
 
 @tool
@@ -34,4 +41,4 @@ def search_notes(query: str) -> str:
     notes = db.search_notes(settings.memory_db_path, query)
     if not notes:
         return f"No notes found matching '{query}'."
-    return "\n".join(f"#{n['id']}: {n['content']}" for n in notes)
+    return "\n".join(_format_note(n) for n in notes)
