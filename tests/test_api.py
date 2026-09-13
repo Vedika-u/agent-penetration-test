@@ -2,6 +2,7 @@ from langchain_core.messages import AIMessage
 from fastapi.testclient import TestClient
 
 from target_agent import api, graph as graph_module
+from target_agent.detection.injection_detector import DetectionResult
 
 
 class FakeLLM:
@@ -12,6 +13,15 @@ class FakeLLM:
 
     def invoke(self, messages):
         return next(self._responses)
+
+
+def _stub_injection_classifier(monkeypatch):
+    """Keeps these API tests network-free (no live Ollama embedding call)."""
+    monkeypatch.setattr(
+        graph_module,
+        "classify_injection",
+        lambda text: DetectionResult(label=False, score=0.0, threshold=0.45),
+    )
 
 
 def test_health():
@@ -31,6 +41,7 @@ def test_chat_calculator_round_trip(monkeypatch):
     ]
     monkeypatch.setattr(graph_module, "build_llm", lambda: FakeLLM(responses))
     monkeypatch.setattr(api, "_graph", None)
+    _stub_injection_classifier(monkeypatch)
 
     client = TestClient(api.app)
     resp = client.post("/chat", json={"session_id": "test-api", "message": "what's 12 * 7?"})
@@ -56,9 +67,10 @@ def test_attack_endpoint_is_stateless_per_call(monkeypatch):
 
     monkeypatch.setattr(graph_module, "build_llm", lambda: FakeLLM(make_responses()))
     monkeypatch.setattr(api, "_graph", None)
+    _stub_injection_classifier(monkeypatch)
 
     client = TestClient(api.app)
     resp = client.post("/attack", json={"message": "what's 1 + 1?"})
 
     assert resp.status_code == 200
-    assert resp.json() == {"response": "1 + 1 is 2."}
+    assert resp.json() == {"response": "1 + 1 is 2.", "verification": []}

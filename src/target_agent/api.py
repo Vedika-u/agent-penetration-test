@@ -39,6 +39,7 @@ class AttackRequest(BaseModel):
 
 class AttackResponse(BaseModel):
     response: str
+    verification: list[str]
 
 
 def _invoke(message: str, thread_id: str) -> dict:
@@ -83,4 +84,7 @@ def attack(req: AttackRequest) -> AttackResponse:
         (m for m in reversed(result["messages"]) if isinstance(m, AIMessage) and m.content),
         None,
     )
-    return AttackResponse(response=final_ai.content if final_ai else "")
+    return AttackResponse(
+        response=final_ai.content if final_ai else "",
+        verification=result.get("verification", []),
+    )
