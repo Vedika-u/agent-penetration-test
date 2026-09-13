@@ -5,15 +5,18 @@
 - **Python 3.11+**
 - **[uv](https://docs.astral.sh/uv/getting-started/installation/)** — dependency management and
   the runner used throughout this doc (`uv run ...`).
-- **[Ollama](https://ollama.com/download)**, running locally with a model pulled. The agent is
-  configured for `llama3.2` by default:
+- **[Ollama](https://ollama.com/download)**, running locally with two models pulled: `llama3.2`
+  (the target agent's chat model, and the Phase 4 benchmark's judge) and `nomic-embed-text` (the
+  Phase 3 detection layer's embedding backend):
 
   ```bash
   ollama pull llama3.2
+  ollama pull nomic-embed-text
   ```
 
   Ollama runs as a background service after install on most platforms; if `ollama pull` can't
   connect, start it in a separate terminal with `ollama serve`.
+- **[Node.js](https://nodejs.org/) 18+ and npm** — only needed for the dashboard (`dashboard/`).
 
 ## Install
 
@@ -75,7 +78,51 @@ This points garak at the agent's `/attack` endpoint (config in
 `src/harness/configs/rest_generator.json`), runs the probe suite, then ingests every
 `(probe, prompt, output, detector score)` row from garak's report into
 `data/attempts.sqlite3`. Swap `--spec` for any garak probe selector (`garak --help` for syntax),
-and `--db_path` to ingest into a different database.
+and `--db_path` to ingest into a different database. garak logs each attempt twice (once
+generated, once scored) under the same UUID — the ingester keeps only the fully-scored copy.
+
+Note: each attempt is one full agent turn against a local model, which can take anywhere from a
+few seconds to ~2 minutes depending on tool calls — start with a small `--spec`
+(e.g. `probes.dan.AutoDANCached`, 3 prompts) before running a large probe set like the full
+`probes.promptinject`.
+
+## Run the detection layer's evaluation (Phase 3)
+
+```bash
+uv run python -m harness.eval_detector
+```
+
+Measures the embedding-similarity injection detector
+(`src/target_agent/detection/injection_detector.py`) against a held-out mix of
+deepset/prompt-injections and JailbreakBench/JBB-Behaviors, and writes precision/recall/F1 to
+`data/results/detector_eval.json` and `reports/phase3_detector_eval.md`. Downloads are cached
+under `data/cache/`. Requires Ollama's `nomic-embed-text` (see Prerequisites).
+
+## Run the Phase 4 benchmark (ASR before/after detection)
+
+```bash
+uv run python -m harness.run_benchmark
+```
+
+Requires the target agent running (above). Samples behaviors from JailbreakBench/JBB-Behaviors,
+attacks the live agent with a few jailbreak-template wrappers, scores compliance with a
+StrongREJECT-*lite* LLM-judge rubric, and reports Attack Success Rate before vs. after the
+detection layer to `data/results/benchmark_asr.json`, `data/results/transcripts_sample.json`, and
+`reports/phase4_benchmark.md` (which also documents this run's scope/caveats — it's a stratified
+subset of the full 100 behaviors, not all of them, given local-model runtimes).
+
+## Run the dashboard (Phase 5)
+
+```bash
+cd dashboard
+npm install
+npm run dev      # local dev server
+npm run build    # static production build (dashboard/dist/)
+```
+
+Reads `data/results/{detector_eval,benchmark_asr,transcripts_sample}.json` — copy (or symlink)
+those files into `dashboard/public/data/` under the same names before building to show real
+results instead of the placeholder fixtures.
 
 ## Troubleshooting
 
@@ -85,3 +132,5 @@ and `--db_path` to ingest into a different database.
 | Agent responds but ignores tools / behaves oddly | Confirm the pulled model matches `OLLAMA_MODEL` in `.env` and supports tool calling. |
 | `uv run python -m harness.run` can't reach the agent | Start `target_agent.main` first — the harness calls it over HTTP, it doesn't start it. |
 | garak probe run is slow / hits the network | Some garak probes call external services for scoring; start with a small `--spec` (e.g. `probes.promptinject`) before running the full suite. |
+| `eval_detector` / live `/attack` calls fail with a 404 from Ollama's embeddings endpoint | `nomic-embed-text` isn't pulled — `ollama pull nomic-embed-text`. |
+| `run_benchmark` / `eval_detector` fail to download datasets | Needs outbound internet access to `huggingface.co` the first time; results are cached under `data/cache/` afterward. |

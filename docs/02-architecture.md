@@ -14,12 +14,13 @@
                                                               ▼
                                                    ┌────────────────────┐
                                                    │ Detection Layer     │
-                                                   │ - grounding check   │
-                                                   │ - attention/PI      │
-                                                   │   classifier        │
+                                                   │ - grounding/claim   │
+                                                   │   check             │
+                                                   │ - embedding-        │
+                                                   │   similarity        │
+                                                   │   injection detector│
                                                    │ - memory-integrity  │
                                                    │   check             │
-                                                   │ - refusal detector  │
                                                    └──────────┬─────────┘
                                                               ▼
                                                    ┌────────────────────┐
@@ -74,30 +75,49 @@ The runner is a thin wrapper that:
   email agent, or a third-party model with only a config change
 
 ### Detection layer
-The part of the project that isn't just "run someone else's tool":
-- A grounding/citation check, extending the target agent's own verification node rather than
-  a separate service
-- A memory-integrity check specific to the notes tool — flags a note whose content looks like
-  an instruction rather than user data, since that's the project's memory-poisoning vector
-- One purpose-built classifier — an attention-shift or embedding-similarity detector,
-  informed by the Attention Tracker / PIShield papers (see `04-research-references.md`) —
-  rather than only relying on garak's built-in judge
-- Structured as an extension of the target agent's existing LangGraph graph (triage → check →
-  verdict), not a separate pipeline
+The part of the project that isn't just "run someone else's tool" (implemented, `src/target_agent/verification.py`
+and `src/target_agent/detection/`):
+- A grounding/citation check (`check_grounding`) — extends the target agent's own verification
+  node rather than a separate service. Flags a final answer that shares no vocabulary with this
+  turn's tool output, and separately flags specific unsupported claims (numbers, proper-noun-like
+  tokens) asserted in the answer but absent from any tool output used that turn.
+- A memory-integrity check (`check_memory_integrity`) specific to the `notes` tool — regex/keyword
+  heuristics over content about to be persisted, flagging (never blocking) instruction-override
+  patterns and invisible-unicode obfuscation. The flag is stored alongside the note (`flagged`
+  column in `memory/db.py`) and surfaced in `list_notes`/`search_notes` output.
+- One purpose-built classifier — `InjectionDetector`
+  (`src/target_agent/detection/injection_detector.py`): **embedding similarity**, not
+  attention-shift, because Ollama's API (the only inference path this agent uses) doesn't expose
+  attention weights, so the Attention Tracker-style approach isn't reproducible here (see the
+  module's docstring and `04-research-references.md`). Classifies text by max cosine similarity
+  (real Ollama `nomic-embed-text` embeddings) against a curated reference set of jailbreak/
+  injection templates, thresholded — the threshold is tuned against labeled data, not guessed
+  (see Scorer below).
+- Wired live into the graph's `verify` node (`graph.py`) — every turn's human message is
+  classified, and the result feeds `state["verification"]` alongside the grounding flags, exposed
+  on both `/chat` and `/attack`. Not just an offline eval-only module.
 
 ### Scorer
-- Computes Attack Success Rate (ASR) per probe category, before and after the detection
-  layer is applied
-- Uses a StrongREJECT-style automated evaluator for scoring, with precision/recall reported
-  against a labeled subset for validation
+- `src/harness/eval_detector.py` measures the injection detector's own precision/recall/F1 against
+  a held-out mix of deepset/prompt-injections and JailbreakBench/JBB-Behaviors — see
+  `reports/phase3_detector_eval.md` for the methodology, numbers, and caveats.
+- `src/harness/run_benchmark.py` computes Attack Success Rate (ASR) per JBB category, before vs.
+  after the detection layer, using a StrongREJECT-*lite* LLM-judge rubric (same local model —
+  a disclosed limitation, not a hidden one) — see `reports/phase4_benchmark.md`.
+- Both write machine-readable results to `data/results/*.json` for the dashboard to read directly.
 
 ### Dashboard
-- React + TypeScript + Tailwind — same stack as the existing portfolio, so the skillset
-  transfers directly
-- Shows: ASR by attack category, detector confusion matrix, and a handful of annotated
-  example transcripts (attack prompt → agent response → verdict)
-- Backed by real stored data (SQLite or Supabase/Postgres), not static JSON, so it reads as
-  a live tool rather than a rendered report
+- React + TypeScript (Vite), plain CSS — simpler than the Tailwind/Supabase stack originally
+  planned; `dashboard/`, built and verified (`npm run build`) against a fixed static-JSON data
+  contract rather than a live database, since the underlying data (detector eval, benchmark ASR,
+  sample transcripts) is generated by one-off scripts, not a running service that needs live
+  querying.
+- Shows: ASR by attack category (before/after), detector confusion matrix + precision/recall/F1
+  stat tiles, and a filterable list of annotated example transcripts (attack prompt → agent
+  response → detector verdict → whether the attack actually succeeded).
+- Reads `data/results/{detector_eval,benchmark_asr,transcripts_sample}.json` from
+  `dashboard/public/data/` at runtime — copying real result files there (same names) is the only
+  step needed to go from placeholder to real data, no code changes.
 
 ## Tech stack
 
@@ -105,7 +125,7 @@ The part of the project that isn't just "run someone else's tool":
 |---|---|---|
 | Target agent | Python + LangGraph, built from scratch in this repo | Full control over tools/memory/prompts as authored attack surface; no external agent dependency |
 | Attack execution | Python + garak | Reuse a maintained, actively-updated probe library |
-| Detection layer | Python, extends the target agent's LangGraph graph | Keeps verification in-graph rather than a bolted-on service |
-| Storage | SQLite (dev) / Supabase Postgres (deployed) | Matches the email agent's existing backend choice; also backs the target agent's notes/memory store |
-| Dashboard | React + TypeScript + Tailwind | Matches the portfolio site's stack |
-| Deployment | Static dashboard (Vercel/GitHub Pages) + hosted API or precomputed results | Keep this reproducible and cheap to host |
+| Detection layer | Python, extends the target agent's LangGraph graph; embeddings via Ollama `nomic-embed-text` | Keeps verification in-graph rather than a bolted-on service; embedding similarity is the tractable detection method against an Ollama-only inference path (no attention-weight access) |
+| Storage | SQLite (`data/attempts.sqlite3`, `data/memory.sqlite3`) + versioned JSON result files (`data/results/`) | Matches the target agent's own notes/memory store; result JSON is simple, diffable, and is exactly what the dashboard/scorer need — no separate DB service to run |
+| Dashboard | React + TypeScript (Vite) + plain CSS, static JSON data contract | Simpler than the Tailwind/Supabase stack originally planned — result data is produced by one-off scripts, not a live service, so a static data contract is the right amount of infrastructure |
+| Deployment | Static dashboard (Vercel/GitHub Pages) + precomputed result JSON | Keep this reproducible and cheap to host |

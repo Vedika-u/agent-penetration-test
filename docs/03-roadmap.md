@@ -28,6 +28,10 @@ remember earlier").
 
 **Deliverable**: a working attack → response log. No scoring yet.
 
+*Shipped.* `src/harness/{run.py,ingest.py,storage.py}`; validated end-to-end against the live
+target agent (found and fixed a real bug in the process: garak logs each attempt twice, once
+generated and once scored, under the same UUID — `ingest_report` now keeps only the scored copy).
+
 ## Phase 3 — Detection layer (1-2 weeks)
 
 - Implement one detector that can be explained and defended in depth — an attention-shift or
@@ -39,6 +43,15 @@ remember earlier").
   the deepset prompt-injection dataset.
 
 **Deliverable**: a detector with a reported precision/recall table.
+
+*Shipped.* Embedding-similarity chosen over attention-shift (Ollama exposes no attention
+weights — see `src/target_agent/detection/injection_detector.py`'s docstring). Measured
+precision 0.689 / recall 0.840 / F1 0.757 on a 196-example held-out mix of
+deepset/prompt-injections and JailbreakBench/JBB-Behaviors — see
+`reports/phase3_detector_eval.md` for full methodology and caveats. Grounding/claim check and
+the notes memory-integrity check are both implemented in `verification.py` /
+`tools/notes.py` / `memory/db.py`, and the injection detector is wired live into the graph's
+`verify` node (not just an offline eval module).
 
 ## Phase 4 — Benchmark & scoring (1 week)
 

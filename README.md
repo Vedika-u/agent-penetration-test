@@ -34,10 +34,10 @@ Attack Success Rate (ASR) once the detection layer lands.
 | Phase | What it delivers | State |
 |---|---|---|
 | 1 — Target agent | LangGraph agent, 3 tools, SQLite memory, HTTP API | ✅ Done |
-| 2 — Harness | garak → target agent → SQLite attempt log | 🔧 In progress |
-| 3 — Detection layer | Grounding check → full injection/memory-integrity detector | ⏳ Planned |
-| 4 — Benchmark & scoring | ASR before/after, against JailbreakBench + StrongREJECT | ⏳ Planned |
-| 5 — Dashboard | Live results UI | ⏳ Planned |
+| 2 — Harness | garak → target agent → SQLite attempt log | ✅ Done |
+| 3 — Detection layer | Grounding/claim check, memory-integrity check, embedding-similarity injection detector with a measured precision/recall/F1 | ✅ Done |
+| 4 — Benchmark & scoring | ASR before/after, against a stratified subset of JailbreakBench (see caveats in `reports/phase4_benchmark.md`) | 🔧 In progress |
+| 5 — Dashboard | React/TS dashboard (ASR, confusion matrix, transcripts), built and running against the Phase 4 results | 🔧 In progress |
 
 Full plan with deliverables per phase: [`docs/03-roadmap.md`](docs/03-roadmap.md).
 
@@ -57,40 +57,57 @@ Attack Corpus  →  Attack Runner   →  Target Agent (this repo, LangGraph)
   Ollama-hosted LLM and decides to respond or call a tool → `tools` node dispatches to
   `web_search` (indirect-injection surface), `add_note` / `list_notes` / `search_notes`
   (SQLite-backed memory — the memory-poisoning surface), or `calculator` → `verify` node checks
-  the final answer's grounding before it's returned. Served over FastAPI so the harness treats
-  it as a black box, same as any other target.
+  the final answer's grounding and runs the injection detector on the turn's input before a
+  response is returned. Served over FastAPI so the harness treats it as a black box, same as any
+  other target.
 - **Harness** (`src/harness/`) — wraps the agent's `/attack` endpoint as a garak REST generator,
   runs garak's probe suite against it, and ingests every `(probe, prompt, output, detector
   score)` row from garak's report into SQLite for downstream scoring.
-- **Detection layer / scorer / dashboard** — designed, not yet built; see the roadmap.
+- **Detection layer** (`src/target_agent/verification.py`, `src/target_agent/detection/`) — a
+  grounding/claim check, a memory-integrity check on the `notes` tool, and an embedding-similarity
+  injection/jailbreak classifier (`InjectionDetector`), wired live into the graph's `verify` node.
+- **Scorer** (`src/harness/eval_detector.py`, `src/harness/run_benchmark.py`) — measures the
+  detector's precision/recall/F1 against labeled data, and the target agent's Attack Success Rate
+  before/after the detection layer against JailbreakBench behaviors. Results:
+  `data/results/*.json`, `reports/phase3_detector_eval.md`, `reports/phase4_benchmark.md`.
+- **Dashboard** (`dashboard/`) — a React/TS app showing ASR by category, the detector's confusion
+  matrix, and annotated example transcripts, reading the scorer's JSON output directly.
 
 Full component breakdown and tech-stack rationale: [`docs/02-architecture.md`](docs/02-architecture.md).
 
 ## Quickstart
 
-Requires Python 3.11+, [uv](https://docs.astral.sh/uv/), and [Ollama](https://ollama.com/)
-running locally. Full walkthrough with troubleshooting: [`docs/00-setup.md`](docs/00-setup.md).
+Requires Python 3.11+, [uv](https://docs.astral.sh/uv/), [Ollama](https://ollama.com/) running
+locally, and Node.js/npm for the dashboard. Full walkthrough with troubleshooting:
+[`docs/00-setup.md`](docs/00-setup.md).
 
 ```bash
 git clone https://github.com/Vedika-u/agent-penetration-test.git
 cd agent-penetration-test
 ollama pull llama3.2
+ollama pull nomic-embed-text                # detection layer's embedding backend
 uv sync
 cp .env.example .env
 uv run pytest                              # run the test suite
 uv run python -m target_agent.main         # serve the agent on :8000
 uv run python scripts/chat.py              # chat with it from the terminal
 uv run python -m harness.run               # run garak's probe suite against it
+uv run python -m harness.eval_detector     # measure the detector's precision/recall
+uv run python -m harness.run_benchmark     # ASR before/after, against JailbreakBench
+cd dashboard && npm install && npm run build   # build the results dashboard
 ```
 
 ## Repo layout
 
 ```
-src/target_agent/   LangGraph agent under test: graph, tools, memory, verification, HTTP API
-src/harness/         garak wrapper: runs probes against the agent, ingests results to SQLite
+src/target_agent/   LangGraph agent under test: graph, tools, memory, verification, detection, HTTP API
+src/harness/         garak wrapper, detector eval, and ASR benchmark; ingests/reports results
 scripts/             manual smoke-test CLI (chat with the agent from a terminal)
-tests/               unit tests for the graph, tools, API contract, and harness ingestion
+tests/               unit tests for the graph, tools, API contract, harness ingestion, detector
 fixtures/            deterministic web_search fixtures, so agent behavior is reproducible
+data/results/        JSON results the scorer produces and the dashboard reads
+reports/             human-readable methodology + results write-ups per phase
+dashboard/           React/TS results dashboard (ASR, confusion matrix, transcripts)
 docs/                full spec: setup, overview, architecture, roadmap, references
 ```
 
