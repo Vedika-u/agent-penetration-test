@@ -37,8 +37,11 @@ def _iter_rows(record: dict, run_id: str | None):
 
 
 def ingest_report(report_path: str, db_path: str) -> int:
+    """garak logs each attempt twice: once when the prompt is generated (detector_results
+    empty) and again after detectors score it. Both lines share the same `uuid`; keep only
+    the last one seen per uuid so we ingest the fully-scored version, not a duplicate."""
     run_id = None
-    rows = []
+    attempts_by_uuid: dict[str, dict] = {}
 
     with open(report_path, encoding="utf-8") as f:
         for line in f:
@@ -51,6 +54,10 @@ def ingest_report(report_path: str, db_path: str) -> int:
             if entry_type == "init":
                 run_id = record.get("run")
             elif entry_type == "attempt":
-                rows.extend(_iter_rows(record, run_id))
+                attempts_by_uuid[record.get("uuid")] = record
+
+    rows = []
+    for record in attempts_by_uuid.values():
+        rows.extend(_iter_rows(record, run_id))
 
     return storage.insert_attempts(db_path, rows)

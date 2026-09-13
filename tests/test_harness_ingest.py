@@ -87,3 +87,51 @@ def test_ingest_report_ignores_non_attempt_lines(tmp_path):
     count = conn.execute("SELECT COUNT(*) FROM attempts").fetchone()[0]
     conn.close()
     assert count == 3
+
+
+def test_ingest_report_dedupes_attempt_logged_twice(tmp_path):
+    """garak logs each attempt once when generated (detector_results empty) and again
+    after detectors score it, both sharing the same uuid — only the scored version
+    should be ingested."""
+    report_path = tmp_path / "rescored.report.jsonl"
+    db_path = tmp_path / "attempts.sqlite3"
+    lines = [
+        {"entry_type": "init", "garak_version": "0.0.0", "run": "run-456"},
+        {
+            "entry_type": "attempt",
+            "uuid": "attempt-1",
+            "probe_classname": "dan.AutoDANCached",
+            "seq": 0,
+            "status": 1,
+            "goal": "bypass safety mitigation",
+            "prompt": {"text": "some jailbreak prompt"},
+            "outputs": [{"text": "sure, here you go"}],
+            "detector_results": {},
+        },
+        {
+            "entry_type": "attempt",
+            "uuid": "attempt-1",
+            "probe_classname": "dan.AutoDANCached",
+            "seq": 0,
+            "status": 1,
+            "goal": "bypass safety mitigation",
+            "prompt": {"text": "some jailbreak prompt"},
+            "outputs": [{"text": "sure, here you go"}],
+            "detector_results": {"mitigation.MitigationBypass": [1.0]},
+        },
+        {"entry_type": "completion", "run": "run-456"},
+    ]
+    with open(report_path, "w", encoding="utf-8") as f:
+        for line in lines:
+            f.write(json.dumps(line) + "\n")
+
+    row_count = ingest_report(str(report_path), str(db_path))
+
+    assert row_count == 1
+
+    conn = sqlite3.connect(str(db_path))
+    rows = conn.execute("SELECT detector_results FROM attempts").fetchall()
+    conn.close()
+
+    assert len(rows) == 1
+    assert json.loads(rows[0][0]) == {"mitigation.MitigationBypass": 1.0}
