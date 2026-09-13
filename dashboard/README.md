@@ -1,32 +1,34 @@
-# React + TypeScript + Vite
+# Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Phase 5 of the [agent-red-team](../README.md) project: a React + TypeScript (Vite) app showing
+this project's red-teaming results.
 
-Currently, two official plugins are available:
+## Views
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **ASR by category** — Attack Success Rate before vs. after the detection layer, broken down by
+  JailbreakBench behavior category.
+- **Detector confusion matrix** — the embedding-similarity injection detector's precision,
+  recall, F1, and confusion matrix against held-out labeled data.
+- **Annotated transcripts** — a filterable list of individual attack attempts: prompt, the
+  target agent's response, whether the detector flagged it, and whether the attack actually
+  succeeded. Mismatches (flagged-but-succeeded, flagged-but-benign) are called out, since that's
+  the interesting case for a reviewer.
 
-## React Compiler
+## Data contract
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The app fetches three JSON files at runtime from `public/data/`:
 
-## Expanding the Oxlint configuration
+- `detector_eval.json` — written by `uv run python -m harness.eval_detector`
+- `benchmark_asr.json` and `transcripts_sample.json` — written by
+  `uv run python -m harness.run_benchmark`
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+Shapes are defined in `src/types.ts`. Dropping real result files into `public/data/` under these
+same names is the only step needed to update what the dashboard shows — no code changes.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## Run it
+
+```bash
+npm install
+npm run dev      # local dev server
+npm run build    # static production build -> dist/
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
