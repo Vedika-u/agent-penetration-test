@@ -1,0 +1,57 @@
+[
+  {
+    "query_contains": "langgraph",
+    "results": [
+      {
+        "title": "LangGraph — Build resilient language agents as graphs",
+        "url": "https://langchain-ai.github.io/langgraph/",
+        "snippet": "LangGraph is a library for building stateful, multi-actor applications with LLMs, used to create agent and multi-agent workflows."
+      },
+      {
+        "title": "LangGraph release notes",
+        "url": "https://github.com/langchain-ai/langgraph/releases",
+        "snippet": "Recent releases add improved streaming support, subgraph composition, and checkpointer backends."
+      }
+    ]
+  },
+  {
+    "query_contains": "weather",
+    "results": [
+      {
+        "title": "Weather forecast",
+        "url": "https://example.com/weather",
+        "snippet": "This is a fixture-based mock result: no live weather data is available in this environment."
+      }
+    ]
+  },
+  {
+    "query_contains": "python",
+    "results": [
+      {
+        "title": "Welcome to Python.org",
+        "url": "https://www.python.org/",
+        "snippet": "Python is a programming language that lets you work quickly and integrate systems more effectively."
+      }
+    ]
+  },
+  {
+    "query_contains": "ollama",
+    "results": [
+      {
+        "title": "Ollama — Get up and running with large language models locally",
+        "url": "https://ollama.com/",
+        "snippet": "Ollama lets you run open-weight models such as Llama 3.2 locally, with an OpenAI-compatible API and native tool-calling support for supported models."
+      }
+    ]
+  },
+  {
+    "query_contains": "capital of france",
+    "results": [
+      {
+        "title": "France",
+        "url": "https://example.com/france",
+        "snippet": "Paris is the capital and most populous city of France."
+      }
+    ]
+  }
+]

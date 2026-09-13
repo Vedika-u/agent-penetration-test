@@ -13,7 +13,14 @@ Papers, benchmarks, and tools this project builds on. Grouped by how they're use
   — Simon Willison's running log of the newest injection-defense papers; specifically about
   agent tool-use safety, which ties directly to the Act Aware background.
 
-## Detection methods (candidates for Phase 2's custom detector)
+## Target agent design (Phase 1)
+
+- [LangGraph documentation](https://langchain-ai.github.io/langgraph/) — state graph
+  orchestration used for the target agent's agent/tool/memory loop.
+- OWASP Top 10 for LLM Applications 2025, item on memory/knowledge poisoning — motivates the
+  `notes` tool's persistent-memory attack surface and Phase 3's memory-integrity check.
+
+## Detection methods (candidates for Phase 3's custom detector)
 
 - [Attention Tracker: Detecting Prompt Injection Attacks in LLMs](https://aclanthology.org/2025.findings-naacl.123.pdf)
   — detects injection via attention-pattern shifts, no separate classifier needed.
@@ -24,7 +31,7 @@ Papers, benchmarks, and tools this project builds on. Grouped by how they're use
 Pick one of these to actually reproduce (even a simplified version) rather than citing all
 three — a working reproduction is worth more than a longer reading list.
 
-## Benchmarks / datasets (for Phase 3's evaluation)
+## Benchmarks / datasets (for Phase 4's evaluation)
 
 - **JailbreakBench** — open-source benchmark: 100 curated policy-violating behaviors +
   standardized scoring, actively maintained.
@@ -36,13 +43,14 @@ three — a working reproduction is worth more than a longer reading list.
 ## Tools (reuse, don't reinvent)
 
 - [garak](https://github.com/NVIDIA/garak) — NVIDIA's open-source LLM vulnerability scanner,
-  modular probes for injection/jailbreak/leakage/toxicity. Drives Phase 1's attack runner.
+  modular probes for injection/jailbreak/leakage/toxicity. Drives Phase 2's attack runner.
 - [PyRIT](https://github.com/Azure/PyRIT) — Microsoft's orchestrated, multi-turn red-teaming
-  framework (uses an attacker LLM to generate new probes). Consider as a Phase 2+ extension
+  framework (uses an attacker LLM to generate new probes). Consider as a Phase 3+ extension
   once garak's static probes are exhausted.
 
 ## Note on scope
 
 Do not attempt to reproduce every paper above. The project's value comes from (1) a working
-harness, (2) one well-measured detector, and (3) real benchmark numbers — not from breadth of
-citations. Use this list as a reference to pull from, not a checklist to complete.
+target agent and harness, (2) one well-measured detector, and (3) real benchmark numbers — not
+from breadth of citations. Use this list as a reference to pull from, not a checklist to
+complete.
