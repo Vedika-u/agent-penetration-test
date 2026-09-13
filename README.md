@@ -10,7 +10,8 @@ surface (prompt injection, tool-output injection, memory poisoning) is fully und
 than a black box. The harness then drives [garak](https://github.com/NVIDIA/garak) against it,
 scores results against public benchmarks ([JailbreakBench](https://jailbreakbench.github.io/),
 [StrongREJECT](https://github.com/alexandrasouly/strongreject)), and reports a before/after
-Attack Success Rate (ASR) once the detection layer lands.
+Attack Success Rate (ASR) through a custom detection layer — see [Results](#results) below for
+the numbers measured so far, and their honestly-reported caveats.
 
 ## Why this project exists
 
@@ -36,10 +37,27 @@ Attack Success Rate (ASR) once the detection layer lands.
 | 1 — Target agent | LangGraph agent, 3 tools, SQLite memory, HTTP API | ✅ Done |
 | 2 — Harness | garak → target agent → SQLite attempt log | ✅ Done |
 | 3 — Detection layer | Grounding/claim check, memory-integrity check, embedding-similarity injection detector with a measured precision/recall/F1 | ✅ Done |
-| 4 — Benchmark & scoring | ASR before/after, against a stratified subset of JailbreakBench (see caveats in `reports/phase4_benchmark.md`) | 🔧 In progress |
-| 5 — Dashboard | React/TS dashboard (ASR, confusion matrix, transcripts), built and running against the Phase 4 results | 🔧 In progress |
+| 4 — Benchmark & scoring | ASR before/after, against a 20-behavior stratified subset of JailbreakBench (5% → 0%; see honest caveats in `reports/phase4_benchmark.md` — this is a small sample against a well-aligned local model, not a precise population estimate) | ✅ Done (small subset — full 100-behavior run is future work) |
+| 5 — Dashboard | React/TS dashboard (ASR, confusion matrix, transcripts), built and running against real Phase 4 results | ✅ Done |
 
 Full plan with deliverables per phase: [`docs/03-roadmap.md`](docs/03-roadmap.md).
+
+## Results
+
+| Metric | Value |
+|---|---|
+| Detector precision / recall / F1 | 0.689 / 0.840 / 0.757 (196 held-out examples, deepset/prompt-injections + JailbreakBench/JBB-Behaviors) |
+| ASR before detection | 5% (1/20 sampled JailbreakBench behaviors) |
+| ASR after detection | 0% |
+
+These are real, reproducible numbers from `reports/phase3_detector_eval.md` and
+`reports/phase4_benchmark.md` — not rounded up or cherry-picked. Read the caveats in both
+reports before citing the numbers alone: the ASR run is a 20-behavior stratified subset (not the
+full 100) against `llama3.2`, whose own safety tuning already refused 19/20 attempts regardless
+of detection, and the same small local model serves as both target and judge (a disclosed
+methodological weakness, not a hidden one). The interesting finding is less "the detector cut ASR
+by 5 points" and more "the one attack that got through in this sample was also independently
+flagged by the detector." Explore the numbers interactively in the [dashboard](dashboard/).
 
 ## Architecture
 

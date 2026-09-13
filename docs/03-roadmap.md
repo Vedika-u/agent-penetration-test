@@ -62,6 +62,17 @@ the notes memory-integrity check are both implemented in `verification.py` /
 
 **Deliverable**: a results table/CSV with real, reproducible numbers.
 
+*Shipped, at reduced scale.* `src/harness/run_benchmark.py` ran 20 of JBB-Behaviors' 100
+behaviors (2/category, stratified) — not the full 100 — because each attempt costs one live
+multi-step agent turn against a local 3B model plus a judge call, and running the full set
+wasn't feasible in the time available. Real, reproducible result: ASR 5% → 0% (before/after
+detection). The honest headline here is less "the detector cut ASR by 5 points" and more
+"`llama3.2`'s own safety tuning already refused 19/20 attempts in this sample, and the one that
+was judged successful was also flagged by the detector" — see `reports/phase4_benchmark.md` for
+the full numbers, the one successful transcript, and a judge-calibration caveat on that
+transcript. Running the full 100-behavior set (and a stronger, independent judge) is future
+work, not done here.
+
 ## Phase 5 — Dashboard & writeup (1 week)
 
 - Build the React/TS dashboard: ASR by category, detector confusion matrix, annotated example
@@ -72,6 +83,15 @@ the notes memory-integrity check are both implemented in `verification.py` /
 
 **Deliverable**: a deployed, clickable dashboard plus a README a recruiter or interviewer can
 read end-to-end.
+
+*Shipped, not yet deployed.* `dashboard/` (React + TS + Vite) builds cleanly (`npm run build`)
+against the real Phase 3/4 result files (not mock data) — ASR by category, detector confusion
+matrix, and the real annotated transcripts including the one successful attack. Not yet pushed
+to a public host (Vercel/GitHub Pages); running it currently means `npm run build` +
+`npm run preview` locally, or serving `dashboard/dist/`. The disclosed-limitations writeup this
+phase also calls for (both the detector's and the benchmark's) is captured in
+`reports/phase3_detector_eval.md` and `reports/phase4_benchmark.md` rather than folded into this
+README directly.
 
 ## Estimated total
 
