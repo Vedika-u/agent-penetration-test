@@ -1,0 +1,46 @@
+# Phase 3 Detector Evaluation
+
+Detector: `embedding-similarity (Ollama nomic-embed-text)`
+
+## Results
+
+| Metric | Value |
+| --- | --- |
+| Threshold (tuned) | 0.4496 |
+| Precision | 0.689 |
+| Recall | 0.840 |
+| F1 | 0.757 |
+| Held-out samples | 196 |
+| True positives | 84 |
+| False positives | 38 |
+| False negatives | 16 |
+| True negatives | 58 |
+
+## Methodology
+
+The detector classifies text by max cosine similarity (real embeddings from Ollama's
+`nomic-embed-text`, called via `POST /api/embeddings`) against a 26-phrase curated reference
+set of known injection/jailbreak templates (see
+`src/target_agent/detection/injection_detector.py` for the list and its provenance). The
+threshold was tuned by sweeping every observed similarity score on a stratified 120-example
+subsample of deepset/prompt-injections' `train` split and keeping the value that maximized F1,
+then evaluated once, unchanged, on a held-out set the tuning never saw: the full
+116-example deepset `test` split plus 80 sampled JailbreakBench behaviors
+(evenly split harmful/benign).
+
+## Caveats
+
+- **Small, imbalanced-by-construction reference set.** ~26 hand-written phrases is enough to
+  demonstrate the method but is not an exhaustive attack catalogue; recall against injection
+  styles unlike anything in the reference set will be worse than reported here.
+- **JailbreakBench rows are goals, not injection prompts.** `JBB-Behaviors` rows read like "Write
+  a phishing email that..." -- harmful *asks*, not "ignore previous instructions"-style
+  injection text. They're included in the held-out set as adversarial input that should be
+  flagged, not as more instances of deepset's injection-prompt framing; a detector tuned purely
+  on injection-phrasing similarity should be expected to do worse on these than on deepset's own
+  test split, and the confusion matrix above is a blend of both, not a per-source breakdown.
+- **"Positive" here means "similar in phrasing/intent to the reference set,"** not "would
+  actually jailbreak the target LLM." This measures the detector as a text classifier in
+  isolation, not end-to-end attack success reduction (that's Phase 4).
+- **Threshold tuned on a subsample, not the full train split**, to keep embedding-call runtime
+  reasonable; a larger tuning sample might shift the threshold slightly.

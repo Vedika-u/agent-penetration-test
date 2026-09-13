@@ -11,6 +11,9 @@ dependencies = [
     "uvicorn[standard]>=0.32",
     "pydantic-settings>=2.5",
     "garak>=0.17.0",
+    "requests>=2.32",
+    "pandas>=2.2",
+    "pyarrow>=17",
 ]
 
 [dependency-groups]
