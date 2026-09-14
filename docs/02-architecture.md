@@ -57,7 +57,15 @@ The system under test, purpose-built for this project rather than reused from an
   one, extended into the full detection layer in Phase 3 (same graph, not a bolted-on
   service).
 - **Interface**: exposed over HTTP so the attack runner treats it as a black box, the same way
-  it would treat any other target.
+  it would treat any other target. Unhandled errors (e.g. Ollama unreachable mid-turn) return a
+  clean `502` instead of a leaked stack trace; message length is bounded (`Field(max_length=8000)`)
+  against trivially oversized payloads; an optional bearer-token gate (`API_AUTH_TOKEN`, unset by
+  default) exists for `/chat`/`/attack` if this were ever exposed beyond localhost. Deliberately
+  **not** rate-limited: this is a red-team *target* meant to receive bursts of automated attack
+  traffic from garak/the benchmark harness with no friction — app-level rate limiting would work
+  directly against the project's own purpose. A real public deployment would rate-limit at the
+  infra layer (reverse proxy/WAF), not in application code that also has to serve legitimate
+  high-volume attack runs.
 
 ### Attack corpus
 Public datasets, not hand-written prompts, so results are reproducible and comparable to

@@ -74,3 +74,55 @@ def test_attack_endpoint_is_stateless_per_call(monkeypatch):
 
     assert resp.status_code == 200
     assert resp.json() == {"response": "1 + 1 is 2.", "verification": []}
+
+
+def test_attack_rejects_empty_message():
+    client = TestClient(api.app)
+    resp = client.post("/attack", json={"message": ""})
+    assert resp.status_code == 422
+
+
+def test_attack_rejects_oversized_message():
+    client = TestClient(api.app)
+    resp = client.post("/attack", json={"message": "a" * 8001})
+    assert resp.status_code == 422
+
+
+def test_auth_token_rejects_missing_or_wrong_bearer(monkeypatch):
+    monkeypatch.setattr(api.settings, "api_auth_token", "secret")
+    client = TestClient(api.app)
+
+    resp = client.post("/attack", json={"message": "hello"})
+    assert resp.status_code == 401
+
+    resp = client.post(
+        "/attack", json={"message": "hello"}, headers={"Authorization": "Bearer wrong"}
+    )
+    assert resp.status_code == 401
+
+
+def test_auth_token_accepts_correct_bearer(monkeypatch):
+    monkeypatch.setattr(api.settings, "api_auth_token", "secret")
+    monkeypatch.setattr(graph_module, "build_llm", lambda: FakeLLM([AIMessage(content="hi")]))
+    monkeypatch.setattr(api, "_graph", None)
+    _stub_injection_classifier(monkeypatch)
+
+    client = TestClient(api.app)
+    resp = client.post(
+        "/attack", json={"message": "hello"}, headers={"Authorization": "Bearer secret"}
+    )
+    assert resp.status_code == 200
+
+
+def test_unhandled_error_returns_clean_502(monkeypatch):
+    def _boom():
+        raise RuntimeError("Ollama unreachable")
+
+    monkeypatch.setattr(graph_module, "build_llm", _boom)
+    monkeypatch.setattr(api, "_graph", None)
+
+    client = TestClient(api.app, raise_server_exceptions=False)
+    resp = client.post("/attack", json={"message": "hello"})
+
+    assert resp.status_code == 502
+    assert resp.json() == {"detail": "target agent failed to respond"}

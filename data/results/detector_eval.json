@@ -1,18 +1,18 @@
 {
   "detector": "embedding-similarity (Ollama nomic-embed-text)",
-  "threshold": 0.44957346120862407,
+  "threshold": 0.45813555815382767,
   "dataset_sources": [
     "deepset/prompt-injections",
     "JailbreakBench/JBB-Behaviors"
   ],
   "n_samples": 196,
-  "precision": 0.6885245901639344,
-  "recall": 0.84,
-  "f1": 0.7567567567567568,
+  "precision": 0.6612903225806451,
+  "recall": 0.82,
+  "f1": 0.7321428571428572,
   "confusion_matrix": {
-    "tp": 84,
-    "fp": 38,
-    "fn": 16,
-    "tn": 58
+    "tp": 82,
+    "fp": 42,
+    "fn": 18,
+    "tn": 54
   }
 }

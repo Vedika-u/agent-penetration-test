@@ -36,20 +36,29 @@ def main() -> None:
         default=DEFAULT_DB_PATH,
         help="sqlite db to ingest attempt rows into",
     )
+    parser.add_argument(
+        "--generations",
+        type=int,
+        default=None,
+        help="generations per prompt (garak default is 5); lower this for faster runs against "
+        "a slow local model -- each generation is one full agent turn",
+    )
     args = parser.parse_args()
 
-    garak.cli.main(
-        [
-            "--target_type",
-            "rest",
-            "--generator_option_file",
-            str(CONFIG_PATH),
-            "--spec",
-            args.spec,
-            "--report_prefix",
-            args.report_prefix,
-        ]
-    )
+    garak_args = [
+        "--target_type",
+        "rest",
+        "--generator_option_file",
+        str(CONFIG_PATH),
+        "--spec",
+        args.spec,
+        "--report_prefix",
+        args.report_prefix,
+    ]
+    if args.generations is not None:
+        garak_args += ["--generations", str(args.generations)]
+
+    garak.cli.main(garak_args)
 
     report_path = garak_config.transient.report_filename
     row_count = ingest_report(report_path, args.db_path)
