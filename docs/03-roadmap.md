@@ -84,14 +84,14 @@ work, not done here.
 **Deliverable**: a deployed, clickable dashboard plus a README a recruiter or interviewer can
 read end-to-end.
 
-*Shipped, not yet deployed.* `dashboard/` (React + TS + Vite) builds cleanly (`npm run build`)
-against the real Phase 3/4 result files (not mock data) — ASR by category, detector confusion
-matrix, and the real annotated transcripts including the one successful attack. Not yet pushed
-to a public host (Vercel/GitHub Pages); running it currently means `npm run build` +
-`npm run preview` locally, or serving `dashboard/dist/`. The disclosed-limitations writeup this
-phase also calls for (both the detector's and the benchmark's) is captured in
-`reports/phase3_detector_eval.md` and `reports/phase4_benchmark.md` rather than folded into this
-README directly.
+*Shipped and deployed*: **https://vedika-u.github.io/agent-penetration-test/**. `dashboard/`
+(React + TS + Vite) builds against the real Phase 3/4 result files (not mock data) — ASR by
+category, detector confusion matrix, and the real annotated transcripts including the one
+successful attack — and deploys automatically to GitHub Pages via
+`.github/workflows/deploy-dashboard.yml` on every push to `master` that touches `dashboard/`.
+The disclosed-limitations writeup this phase also calls for (both the detector's and the
+benchmark's) is captured in `reports/phase3_detector_eval.md` and `reports/phase4_benchmark.md`
+rather than folded into this README directly.
 
 ## Estimated total
 

@@ -113,6 +113,11 @@ subset of the full 100 behaviors, not all of them, given local-model runtimes).
 
 ## Run the dashboard (Phase 5)
 
+Live at **https://vedika-u.github.io/agent-penetration-test/** — auto-deployed by
+`.github/workflows/deploy-dashboard.yml` on every push to `master` that touches `dashboard/`.
+
+To run it locally instead:
+
 ```bash
 cd dashboard
 npm install

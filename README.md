@@ -38,7 +38,7 @@ the numbers measured so far, and their honestly-reported caveats.
 | 2 — Harness | garak → target agent → SQLite attempt log | ✅ Done |
 | 3 — Detection layer | Grounding/claim check, memory-integrity check, embedding-similarity injection detector with a measured precision/recall/F1 | ✅ Done |
 | 4 — Benchmark & scoring | ASR before/after, against a 20-behavior stratified subset of JailbreakBench (5% → 0%; see honest caveats in `reports/phase4_benchmark.md` — this is a small sample against a well-aligned local model, not a precise population estimate) | ✅ Done (small subset — full 100-behavior run is future work) |
-| 5 — Dashboard | React/TS dashboard (ASR, confusion matrix, transcripts), built and running against real Phase 4 results | ✅ Done |
+| 5 — Dashboard | React/TS dashboard (ASR, confusion matrix, transcripts), deployed at [vedika-u.github.io/agent-penetration-test](https://vedika-u.github.io/agent-penetration-test/) | ✅ Done |
 
 Full plan with deliverables per phase: [`docs/03-roadmap.md`](docs/03-roadmap.md).
 
@@ -57,7 +57,8 @@ full 100) against `llama3.2`, whose own safety tuning already refused 19/20 atte
 of detection, and the same small local model serves as both target and judge (a disclosed
 methodological weakness, not a hidden one). The interesting finding is less "the detector cut ASR
 by 5 points" and more "the one attack that got through in this sample was also independently
-flagged by the detector." Explore the numbers interactively in the [dashboard](dashboard/).
+flagged by the detector." Explore the numbers interactively in the live dashboard:
+**https://vedika-u.github.io/agent-penetration-test/**
 
 ## Architecture
 
