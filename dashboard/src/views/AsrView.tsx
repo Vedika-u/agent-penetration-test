@@ -4,7 +4,7 @@ import { AsrBarChart } from "../components/AsrBarChart";
 import { StatTile } from "../components/StatTile";
 import type { BenchmarkAsr } from "../types";
 
-const DATA_PATH = "/data/benchmark_asr.json";
+const DATA_PATH = `${import.meta.env.BASE_URL}data/benchmark_asr.json`;
 
 export function AsrView() {
   const state = useJson<BenchmarkAsr>(DATA_PATH);

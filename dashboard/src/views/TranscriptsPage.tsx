@@ -3,7 +3,7 @@ import { DataState } from "../components/DataState";
 import { TranscriptsView } from "../components/TranscriptsView";
 import type { TranscriptsSample } from "../types";
 
-const DATA_PATH = "/data/transcripts_sample.json";
+const DATA_PATH = `${import.meta.env.BASE_URL}data/transcripts_sample.json`;
 
 export function TranscriptsPage() {
   const state = useJson<TranscriptsSample>(DATA_PATH);

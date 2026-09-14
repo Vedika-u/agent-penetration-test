@@ -4,7 +4,7 @@ import { StatTile } from "../components/StatTile";
 import { ConfusionMatrixGrid } from "../components/ConfusionMatrixGrid";
 import type { DetectorEval } from "../types";
 
-const DATA_PATH = "/data/detector_eval.json";
+const DATA_PATH = `${import.meta.env.BASE_URL}data/detector_eval.json`;
 
 export function DetectorView() {
   const state = useJson<DetectorEval>(DATA_PATH);
