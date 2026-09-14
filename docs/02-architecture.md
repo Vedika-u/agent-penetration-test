@@ -58,9 +58,13 @@ The system under test, purpose-built for this project rather than reused from an
   service).
 - **Interface**: exposed over HTTP so the attack runner treats it as a black box, the same way
   it would treat any other target. Unhandled errors (e.g. Ollama unreachable mid-turn) return a
-  clean `502` instead of a leaked stack trace; message length is bounded (`Field(max_length=8000)`)
-  against trivially oversized payloads; an optional bearer-token gate (`API_AUTH_TOKEN`, unset by
-  default) exists for `/chat`/`/attack` if this were ever exposed beyond localhost. Deliberately
+  clean `502` instead of a leaked stack trace; an optional bearer-token gate (`API_AUTH_TOKEN`,
+  unset by default) exists for `/chat`/`/attack` if this were ever exposed beyond localhost.
+  `/chat`'s message is length-bounded (`Field(min_length=1, max_length=8000)`, a human-typed
+  interactive endpoint); `/attack` deliberately has **no** such bound — an earlier identical bound
+  there caused a live 422 that crashed an entire garak sweep partway through (garak treats any
+  non-200 response as fatal), discovered running Phase 2 at full scale, not caught in review.
+  Deliberately
   **not** rate-limited: this is a red-team *target* meant to receive bursts of automated attack
   traffic from garak/the benchmark harness with no friction — app-level rate limiting would work
   directly against the project's own purpose. A real public deployment would rate-limit at the

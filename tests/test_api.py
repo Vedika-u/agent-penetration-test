@@ -76,16 +76,19 @@ def test_attack_endpoint_is_stateless_per_call(monkeypatch):
     assert resp.json() == {"response": "1 + 1 is 2.", "verification": []}
 
 
-def test_attack_rejects_empty_message():
-    client = TestClient(api.app)
-    resp = client.post("/attack", json={"message": ""})
-    assert resp.status_code == 422
+def test_attack_accepts_empty_and_oversized_messages(monkeypatch):
+    """/attack must accept any payload a real garak probe might send -- an earlier
+    min/max-length constraint here caused a live 422 that crashed an entire garak sweep
+    (garak treats any non-200 response as fatal), found running Phase 2 at scale."""
+    monkeypatch.setattr(
+        graph_module, "build_llm", lambda: FakeLLM([AIMessage(content="ok")] * 2)
+    )
+    monkeypatch.setattr(api, "_graph", None)
+    _stub_injection_classifier(monkeypatch)
 
-
-def test_attack_rejects_oversized_message():
     client = TestClient(api.app)
-    resp = client.post("/attack", json={"message": "a" * 8001})
-    assert resp.status_code == 422
+    assert client.post("/attack", json={"message": ""}).status_code == 200
+    assert client.post("/attack", json={"message": "a" * 20000}).status_code == 200
 
 
 def test_auth_token_rejects_missing_or_wrong_bearer(monkeypatch):

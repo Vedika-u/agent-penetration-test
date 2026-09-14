@@ -59,7 +59,12 @@ class ChatResponse(BaseModel):
 
 
 class AttackRequest(BaseModel):
-    message: str = Field(min_length=1, max_length=8000)
+    """No length/emptiness constraints, unlike ChatRequest: this endpoint receives real garak
+    probe payloads (e.g. probes.dan.DanInTheWild), which can legitimately be very short or long.
+    An earlier max_length=8000 here caused a live 422 that crashed an entire garak sweep (garak
+    treats any non-200 response as fatal) -- discovered running Phase 2 at scale, not in review."""
+
+    message: str
 
 
 class AttackResponse(BaseModel):
