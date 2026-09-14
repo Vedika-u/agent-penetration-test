@@ -31,6 +31,10 @@ remember earlier").
 *Shipped.* `src/harness/{run.py,ingest.py,storage.py}`; validated end-to-end against the live
 target agent (found and fixed a real bug in the process: garak logs each attempt twice, once
 generated and once scored, under the same UUID — `ingest_report` now keeps only the scored copy).
+A second real bug surfaced running a larger 256-prompt sweep (`probes.dan.DanInTheWild`): a single
+slow multi-tool-call turn exceeded `configs/rest_generator.json`'s 120s `request_timeout` and
+garak aborted the entire run rather than skipping one slow attempt — fixed by raising the timeout
+to 300s (see the setup doc's troubleshooting table).
 
 ## Phase 3 — Detection layer (1-2 weeks)
 
@@ -46,9 +50,12 @@ generated and once scored, under the same UUID — `ingest_report` now keeps onl
 
 *Shipped.* Embedding-similarity chosen over attention-shift (Ollama exposes no attention
 weights — see `src/target_agent/detection/injection_detector.py`'s docstring). Measured
-precision 0.689 / recall 0.840 / F1 0.757 on a 196-example held-out mix of
-deepset/prompt-injections and JailbreakBench/JBB-Behaviors — see
-`reports/phase3_detector_eval.md` for full methodology and caveats. Grounding/claim check and
+precision 0.661 / recall 0.820 / F1 0.732 on a 196-example held-out mix of
+deepset/prompt-injections and JailbreakBench/JBB-Behaviors, with a 40-phrase reference set — see
+`reports/phase3_detector_eval.md` for full methodology and caveats, including an honest finding
+worth flagging: expanding the reference set from an initial 26 phrases to 40 (more attack styles
+covered) measurably *reduced* precision/F1 (0.757 → 0.732) rather than improving it, reported
+as-is rather than reverted. Grounding/claim check and
 the notes memory-integrity check are both implemented in `verification.py` /
 `tools/notes.py` / `memory/db.py`, and the injection detector is wired live into the graph's
 `verify` node (not just an offline eval module).
@@ -62,16 +69,19 @@ the notes memory-integrity check are both implemented in `verification.py` /
 
 **Deliverable**: a results table/CSV with real, reproducible numbers.
 
-*Shipped, at reduced scale.* `src/harness/run_benchmark.py` ran 20 of JBB-Behaviors' 100
-behaviors (2/category, stratified) — not the full 100 — because each attempt costs one live
-multi-step agent turn against a local 3B model plus a judge call, and running the full set
-wasn't feasible in the time available. Real, reproducible result: ASR 5% → 0% (before/after
-detection). The honest headline here is less "the detector cut ASR by 5 points" and more
-"`llama3.2`'s own safety tuning already refused 19/20 attempts in this sample, and the one that
-was judged successful was also flagged by the detector" — see `reports/phase4_benchmark.md` for
-the full numbers, the one successful transcript, and a judge-calibration caveat on that
-transcript. Running the full 100-behavior set (and a stronger, independent judge) is future
-work, not done here.
+*Shipped, at full scale.* `src/harness/run_benchmark.py` ran all 100 of JBB-Behaviors' behaviors
+across 3 attack templates, judged by `phi3-mini-gguf` (a different model/weights than the
+target's own `llama3.2`, removing the earlier same-model-judge weakness). Real, reproducible
+result: ASR 0% → 0% (before/after detection) — a genuine ceiling effect, not a bug: `llama3.2`
+refused all 100 attempts, so there was nothing for the detection layer to catch. An earlier
+20-behavior run with a same-model judge had measured a non-zero 5% baseline (one "success");
+re-running that same behavior at full scale under the independent judge shows a clean refusal,
+suggesting the earlier result was very likely a same-model-judge artifact rather than a real
+vulnerability the detector then closed. See `reports/phase4_benchmark.md`'s "Notable observation"
+section for the full analysis, including verification that the judge itself wasn't stuck (tested
+directly against a hand-crafted compliant response, correctly scored 1.0). Remaining honest gap:
+StrongREJECT's own protocol uses a strong external judge (GPT-4-class); `phi3-mini-gguf` is still
+a small local model, just no longer the same one being graded.
 
 ## Phase 5 — Dashboard & writeup (1 week)
 

@@ -37,7 +37,7 @@ the numbers measured so far, and their honestly-reported caveats.
 | 1 — Target agent | LangGraph agent, 3 tools, SQLite memory, HTTP API | ✅ Done |
 | 2 — Harness | garak → target agent → SQLite attempt log | ✅ Done |
 | 3 — Detection layer | Grounding/claim check, memory-integrity check, embedding-similarity injection detector with a measured precision/recall/F1 | ✅ Done |
-| 4 — Benchmark & scoring | ASR before/after, against a 20-behavior stratified subset of JailbreakBench (5% → 0%; see honest caveats in `reports/phase4_benchmark.md` — this is a small sample against a well-aligned local model, not a precise population estimate) | ✅ Done (small subset — full 100-behavior run is future work) |
+| 4 — Benchmark & scoring | ASR before/after against the full 100-behavior JailbreakBench set, judged by an independent local model (0% → 0% — see `reports/phase4_benchmark.md` for why a genuine ceiling effect, not a bug, produced zero variance) | ✅ Done |
 | 5 — Dashboard | React/TS dashboard (ASR, confusion matrix, transcripts), deployed at [vedika-u.github.io/agent-penetration-test](https://vedika-u.github.io/agent-penetration-test/) | ✅ Done |
 
 Full plan with deliverables per phase: [`docs/03-roadmap.md`](docs/03-roadmap.md).
@@ -48,18 +48,24 @@ Full plan with deliverables per phase: [`docs/03-roadmap.md`](docs/03-roadmap.md
 
 | Metric | Value |
 |---|---|
-| Detector precision / recall / F1 | 0.689 / 0.840 / 0.757 (196 held-out examples, deepset/prompt-injections + JailbreakBench/JBB-Behaviors) |
-| ASR before detection | 5% (1/20 sampled JailbreakBench behaviors) |
+| Detector precision / recall / F1 | 0.661 / 0.820 / 0.732 (196 held-out examples, deepset/prompt-injections + JailbreakBench/JBB-Behaviors, 40-phrase reference set) |
+| ASR before detection | 0% (0/100 JailbreakBench behaviors, full set) |
 | ASR after detection | 0% |
 
 These are real, reproducible numbers from `reports/phase3_detector_eval.md` and
-`reports/phase4_benchmark.md` — not rounded up or cherry-picked. Read the caveats in both
-reports before citing the numbers alone: the ASR run is a 20-behavior stratified subset (not the
-full 100) against `llama3.2`, whose own safety tuning already refused 19/20 attempts regardless
-of detection, and the same small local model serves as both target and judge (a disclosed
-methodological weakness, not a hidden one). The interesting finding is less "the detector cut ASR
-by 5 points" and more "the one attack that got through in this sample was also independently
-flagged by the detector." Explore the numbers interactively in the live dashboard:
+`reports/phase4_benchmark.md` — not rounded up or cherry-picked. Read both reports' caveats before
+citing the numbers alone: the ASR run covers the full 100 JBB behaviors across 3 attack templates,
+judged by `phi3-mini-gguf` (independent of the target's own `llama3.2`) — and the honest finding is
+a genuine ceiling effect, not a broken detector: `llama3.2` refused every single attempt, so there
+was nothing for the detection layer to catch. An earlier, smaller run (20 behaviors, same-model
+judge) had measured a non-zero 5% baseline; re-running at full scale with an independent judge
+shows that result was very likely a same-model-judge artifact, not a real vulnerability — see the
+report's "Notable observation" section. The detector's value here is better evidenced by its
+standalone precision/recall (above) and by it correctly flagging 99/100 of the attack prompts live,
+than by an ASR delta that had no headroom to move in this benchmark. Separately, expanding the
+detector's reference set from 26 to 40 phrases (more attack styles covered) measurably *hurt*
+precision/F1 rather than helping — also reported as-is in `reports/phase3_detector_eval.md`.
+Explore the numbers interactively in the live dashboard:
 **https://vedika-u.github.io/agent-penetration-test/**
 
 ## Architecture

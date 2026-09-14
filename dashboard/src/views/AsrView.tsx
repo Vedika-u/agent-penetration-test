@@ -13,6 +13,10 @@ export function AsrView() {
     <DataState state={state} path={DATA_PATH}>
       {(data) => {
         const delta = data.asr_before_overall - data.asr_after_overall;
+        const relativeDropLabel =
+          data.asr_before_overall === 0
+            ? "baseline ASR was already 0%"
+            : `${((delta / data.asr_before_overall) * 100).toFixed(0)}% relative drop`;
         return (
           <div className="view">
             <header className="view__header">
@@ -37,7 +41,7 @@ export function AsrView() {
               <StatTile
                 label="Absolute reduction"
                 value={`${(delta * 100).toFixed(1)} pts`}
-                hint={`${((delta / data.asr_before_overall) * 100).toFixed(0)}% relative drop`}
+                hint={relativeDropLabel}
               />
             </div>
 
