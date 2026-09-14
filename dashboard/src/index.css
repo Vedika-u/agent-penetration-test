@@ -310,13 +310,7 @@ code {
 .asr-chart__category-label {
   fill: var(--text-secondary);
   font-size: 11px;
-  text-anchor: middle;
-}
-
-.asr-chart__category-n {
-  fill: var(--text-muted);
-  font-size: 9px;
-  text-anchor: middle;
+  text-anchor: end;
 }
 
 .asr-chart__bar {

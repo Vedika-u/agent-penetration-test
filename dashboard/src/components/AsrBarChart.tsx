@@ -18,6 +18,8 @@ const CHART_HEIGHT = 260;
 const BAR_WIDTH = 22;
 const GROUP_GAP = 2; // gap between the before/after bars within a group
 const GROUP_PADDING = 28; // space between groups
+const LABEL_MARGIN = 90; // vertical room below the baseline for rotated category labels
+const LEFT_MARGIN = 60; // horizontal room so the first rotated label isn't clipped at x=0
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
@@ -29,7 +31,8 @@ export function AsrBarChart({ categories }: AsrBarChartProps) {
   const axisMax = Math.min(1, Math.ceil(maxValue * 10) / 10 + 0.05);
 
   const groupWidth = BAR_WIDTH * 2 + GROUP_GAP;
-  const chartWidth = categories.length * (groupWidth + GROUP_PADDING) + GROUP_PADDING;
+  const chartWidth =
+    LEFT_MARGIN + categories.length * (groupWidth + GROUP_PADDING) + GROUP_PADDING;
   const yFor = (v: number) => CHART_HEIGHT - (v / axisMax) * CHART_HEIGHT;
 
   const gridLines = [0, 0.25, 0.5, 0.75, 1].map((f) => f * axisMax).filter((v) => v <= axisMax);
@@ -50,8 +53,8 @@ export function AsrBarChart({ categories }: AsrBarChartProps) {
           role="img"
           aria-label="Attack success rate by category, before and after detection"
           width={chartWidth}
-          height={CHART_HEIGHT + 56}
-          viewBox={`0 0 ${chartWidth} ${CHART_HEIGHT + 56}`}
+          height={CHART_HEIGHT + LABEL_MARGIN}
+          viewBox={`0 0 ${chartWidth} ${CHART_HEIGHT + LABEL_MARGIN}`}
         >
           {gridLines.map((v) => (
             <g key={v}>
@@ -76,7 +79,7 @@ export function AsrBarChart({ categories }: AsrBarChartProps) {
           />
 
           {categories.map((cat, i) => {
-            const groupX = GROUP_PADDING + i * (groupWidth + GROUP_PADDING);
+            const groupX = LEFT_MARGIN + GROUP_PADDING + i * (groupWidth + GROUP_PADDING);
             const beforeH = CHART_HEIGHT - yFor(cat.asr_before);
             const afterH = CHART_HEIGHT - yFor(cat.asr_after);
             return (
@@ -121,17 +124,11 @@ export function AsrBarChart({ categories }: AsrBarChartProps) {
                 />
                 <text
                   x={groupX + BAR_WIDTH + GROUP_GAP / 2}
-                  y={CHART_HEIGHT + 18}
+                  y={CHART_HEIGHT + 14}
                   className="asr-chart__category-label"
+                  transform={`rotate(-40 ${groupX + BAR_WIDTH + GROUP_GAP / 2} ${CHART_HEIGHT + 14})`}
                 >
-                  {cat.category}
-                </text>
-                <text
-                  x={groupX + BAR_WIDTH + GROUP_GAP / 2}
-                  y={CHART_HEIGHT + 34}
-                  className="asr-chart__category-n"
-                >
-                  n={cat.n}
+                  {cat.category} (n={cat.n})
                 </text>
               </g>
             );

@@ -44,6 +44,8 @@ Full plan with deliverables per phase: [`docs/03-roadmap.md`](docs/03-roadmap.md
 
 ## Results
 
+![ASR by category, screenshotted from the live dashboard](docs/screenshots/dashboard-asr.png)
+
 | Metric | Value |
 |---|---|
 | Detector precision / recall / F1 | 0.689 / 0.840 / 0.757 (196 held-out examples, deepset/prompt-injections + JailbreakBench/JBB-Behaviors) |
